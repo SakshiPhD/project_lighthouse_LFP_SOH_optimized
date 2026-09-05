@@ -49,3 +49,24 @@ Inspect results by running `harbor view jobs`
 Share results by running `harbor upload jobs/2026-09-05__15-30-58`
 
 ```
+
+
+## Verifier-hardening validation
+
+### Oracle
+
+Trials: 1  
+Exceptions: 0  
+Mean: 1.000  
+Reward: 1.0  
+Total runtime: 5m 52s  
+Results: jobs/2026-09-05__17-23-26/result.json
+
+### NOP
+
+Trials: 1  
+Exceptions: 0  
+Mean: 0.000  
+Reward: 0.0  
+Total runtime: 1m 34s  
+Results: jobs/2026-09-05__17-30-58/result.json

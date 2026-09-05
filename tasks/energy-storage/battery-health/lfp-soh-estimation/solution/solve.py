@@ -46,11 +46,13 @@ FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 GROUPS = [3, 5, 6, 7, 8, 13, 15]
 
-EXPECTED_CELLS = [
+EXPECTED_DEV_CELLS = [
     f"G{g}C{c}"
     for g in GROUPS
-    for c in (1, 2, 3)
+    for c in (1, 2)
 ]
+
+HELDOUT_DIR = DATA_DIR / "heldout"
 
 SOC_INDEX = {
     20: 2,
@@ -546,15 +548,18 @@ def extract_v1_features(rpt_file):
 
 missing_cells = [
     cell
-    for cell in EXPECTED_CELLS
-    if not (
-        DATA_DIR / cell
-    ).exists()
+    for cell in EXPECTED_DEV_CELLS
+    if not (DATA_DIR / cell).exists()
 ]
 
 if missing_cells:
     raise RuntimeError(
-        f"Missing cells: {missing_cells}"
+        f"Missing development cells: {missing_cells}"
+    )
+
+if not HELDOUT_DIR.exists():
+    raise RuntimeError(
+        "Missing anonymized held-out directory"
     )
 
 
@@ -566,7 +571,7 @@ target_rows = []
 feature_rows = []
 
 
-for cell_id in EXPECTED_CELLS:
+for cell_id in EXPECTED_DEV_CELLS:
 
     cell_dir = (
         DATA_DIR / cell_id
@@ -617,6 +622,26 @@ for cell_id in EXPECTED_CELLS:
                 rpt_file
             )
         })
+
+
+heldout_files = sorted(
+    HELDOUT_DIR.glob("sample_*.csv.gz"),
+    key=natural_key
+)
+
+if len(heldout_files) != 255:
+    raise RuntimeError(
+        f"Expected 255 anonymized held-out files, found {len(heldout_files)}"
+    )
+
+for rpt_file in heldout_files:
+    sample_id = rpt_file.name.removesuffix(".csv.gz")
+
+    feature_rows.append({
+        "sample_id": sample_id,
+        "source_file": rpt_file.name,
+        **extract_v1_features(rpt_file)
+    })
 
 
 targets = pd.DataFrame(
@@ -716,27 +741,29 @@ heldout_truth = pd.read_csv(
     HELDOUT_TRUTH
 )
 
-test_df = (
-    features[
-        features["replicate"]
-        .eq("C3")
-    ]
-    .merge(
-        heldout_truth,
-        on=[
-            "cell_id",
-            "group",
-            "replicate",
-            "rpt_index"
-        ],
-        how="inner",
-        validate="one_to_one"
+if "sample_id" not in heldout_truth.columns:
+    raise RuntimeError(
+        "Held-out truth is missing sample_id"
     )
+
+heldout_feature_df = (
+    features.loc[
+        features["sample_id"].notna(),
+        ["sample_id"] + FEATURE_COLUMNS
+    ]
+    .copy()
+)
+
+test_df = heldout_feature_df.merge(
+    heldout_truth,
+    on="sample_id",
+    how="inner",
+    validate="one_to_one"
 )
 
 if len(test_df) != 255:
     raise RuntimeError(
-        "Held-out truth does not match the C3 feature rows."
+        "Held-out truth does not match anonymized held-out feature rows."
     )
 
 
@@ -1349,6 +1376,7 @@ test_r2 = r2_score(
 
 predictions = test_df[
     [
+        "sample_id",
         "cell_id",
         "group",
         "replicate",
@@ -1684,10 +1712,7 @@ feature_ranking[
 
 submission_predictions = predictions[
     [
-        "cell_id",
-        "group",
-        "replicate",
-        "rpt_index",
+        "sample_id",
         "predicted_SOH_pct"
     ]
 ].copy()

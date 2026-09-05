@@ -29,12 +29,7 @@ EXPECTED_DEV_CELLS = {
     "G15C1", "G15C2"
 }
 
-KEYS = [
-    "cell_id",
-    "group",
-    "replicate",
-    "rpt_index"
-]
+KEYS = ["sample_id"]
 
 REQUIRED = [
     RESULTS / "predictions.csv",
@@ -96,38 +91,59 @@ require(
 )
 
 
-# Confirm held-out target columns are not exposed in /app/data.
-for cell_id in sorted(EXPECTED_TEST_CELLS):
+# Confirm held-out samples are anonymous and target columns are not exposed.
+heldout_dir = DATA / "heldout"
 
-    paths = list(
-        (DATA / cell_id)
-        .glob("RPT *.csv.gz")
+require(
+    heldout_dir.exists(),
+    "Missing anonymized held-out directory"
+)
+
+paths = sorted(
+    heldout_dir.glob("sample_*.csv.gz")
+)
+
+require(
+    len(paths) == 255,
+    "Expected 255 anonymized held-out RPT files"
+)
+
+require(
+    not any(
+        (DATA / cell).exists()
+        for cell in EXPECTED_TEST_CELLS
+    ),
+    "Original held-out cell folders must not be agent-visible"
+)
+
+for path in paths:
+
+    columns = [
+        c.lower()
+        for c in pd.read_csv(
+            path,
+            nrows=0
+        ).columns
+    ]
+
+    require(
+        not any(
+            "capacity" in c
+            or "energy" in c
+            or "soh" in c
+            for c in columns
+        ),
+        f"Target-defining column exposed in held-out file {path.name}"
     )
 
     require(
-        len(paths) > 0,
-        f"Missing held-out RPT files for {cell_id}"
+        "cycle" not in columns
+        and not any(
+            c.startswith("date")
+            for c in columns
+        ),
+        f"Forbidden ageing metadata exposed in held-out file {path.name}"
     )
-
-    for path in paths:
-
-        columns = [
-            c.lower()
-            for c in pd.read_csv(
-                path,
-                nrows=0
-            ).columns
-        ]
-
-        require(
-            not any(
-                "capacity" in c
-                or "energy" in c
-                or "soh" in c
-                for c in columns
-            ),
-            f"Target-defining column exposed in held-out file {path.name}"
-        )
 
 
 # Hidden reference
@@ -135,7 +151,7 @@ truth = pd.read_csv(
     TRUTH_PATH
 )
 
-for col in KEYS + ["SOH_pct"]:
+for col in KEYS + ["SOH_pct", "cell_id", "group", "replicate", "rpt_index"]:
     require(
         col in truth.columns,
         f"Hidden truth is missing {col}"
@@ -179,14 +195,9 @@ require(
 )
 
 require(
-    set(pred["cell_id"].unique())
-    == EXPECTED_TEST_CELLS,
-    "Predictions contain the wrong held-out cells"
-)
-
-require(
-    pred["replicate"].eq("C3").all(),
-    "Only C3 cells may appear in final predictions"
+    set(pred["sample_id"].astype(str))
+    == set(truth["sample_id"].astype(str)),
+    "Predictions contain missing or unknown held-out sample IDs"
 )
 
 require(
@@ -252,7 +263,6 @@ for key in [
     "final_model",
     "selected_features",
     "development_cells",
-    "heldout_cells",
     "validation_MAE",
     "validation_RMSE",
     "validation_R2",
@@ -287,20 +297,6 @@ require(
     set(metrics["development_cells"])
     == EXPECTED_DEV_CELLS,
     "development_cells is incorrect"
-)
-
-require(
-    set(metrics["heldout_cells"])
-    == EXPECTED_TEST_CELLS,
-    "heldout_cells is incorrect"
-)
-
-require(
-    set(metrics["development_cells"])
-    .isdisjoint(
-        set(metrics["heldout_cells"])
-    ),
-    "Development and held-out cells overlap"
 )
 
 for key in [
@@ -416,6 +412,24 @@ pngs = [
 require(
     len(pngs) >= 1,
     "No supporting PNG figure was produced"
+)
+
+from matplotlib import image as mpimg
+
+valid_png = False
+
+for png in pngs:
+    try:
+        img = mpimg.imread(png)
+        if getattr(img, "size", 0) > 0:
+            valid_png = True
+            break
+    except Exception:
+        pass
+
+require(
+    valid_png,
+    "Supporting PNG figure is not a valid image"
 )
 
 
