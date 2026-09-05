@@ -70,3 +70,18 @@ Mean: 0.000
 Reward: 0.0  
 Total runtime: 1m 34s  
 Results: jobs/2026-09-05__17-30-58/result.json
+
+
+## Final validation after verifier hardening and network isolation
+
+### Oracle
+Trials: 1
+Exceptions: 0
+Mean: 1.000
+Results: jobs/2026-09-05__17-55-01/result.json
+
+### NOP
+Trials: 1
+Exceptions: 0
+Mean: 0.000
+Results: jobs/2026-09-05__18-02-10/result.json
