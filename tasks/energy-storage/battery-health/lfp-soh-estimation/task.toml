@@ -7,8 +7,48 @@ description = "Estimate LFP battery SOH for unseen cells from RPT diagnostics."
 keywords = ["battery", "LFP", "SOH", "machine-learning", "scientific-computing"]
 
 [metadata]
-difficulty = "hard"
-category = "machine-learning"
+author_name = "Dr. Sakshi Bansal"
+author_email = "sakshibansalphd@gmail.com"
+author_organization = "Independent Applied AI Researcher"
+author_profile = "https://scholar.google.com/citations?user=HdGM9u0AAAAJ&hl=en"
+
+difficulty_explanation = """
+This task is difficult because the raw data are realistic battery Reference Performance Test files rather than a ready-made machine-learning table. A solver must understand the experimental protocol, distinguish target-defining capacity measurements from diagnostic measurements, construct a cell-specific State of Health target for development cells, and prevent leakage from capacity, time, cycle, RPT index, and cell identity. The data come from real Graphite/LFP ageing experiments and contain repeated measurements, cell-to-cell variation, protocol structure, and ageing effects that must be interpreted consistently.
+
+The modelling problem is also difficult because the scientific goal is generalization to unseen cells, not interpolation across randomly mixed rows. Validation therefore has to keep each cell intact, feature selection must occur inside grouped cross-validation, and model comparison must avoid using any information from the held-out C3 cells. The solver must also turn pulse and relaxation behaviour into physically meaningful predictors and produce interpretable outputs rather than relying on an opaque shortcut.
+
+This is representative of work performed by a battery data scientist, battery diagnostics researcher, or research engineer developing health-estimation models from laboratory characterization data. Both humans and AI systems can fail by making locally plausible but scientifically invalid choices, especially around protocol interpretation, feature leakage, and cell-independent validation.
+"""
+
+solution_explanation = """
+The reference solution treats the problem as a cell-generalization study rather than an ordinary row-level regression exercise. Its main strategy is to separate target construction from predictor construction and to maintain that separation throughout development. For the C1 and C2 development cells, each Reference Performance Test file is inspected for the reference discharge segment labelled ref_dchg. The largest capacity associated with the matching reference discharge is used as the C/3 reference capacity for that RPT. Each cell's RPT 0 capacity defines its own beginning-of-life reference, and later reference capacities are normalized to that baseline to calculate State of Health. Capacity and energy are used only for target construction and quality control, never as model predictors.
+
+Predictors are extracted from non-capacity diagnostic behaviour in the same RPT files. The solution uses slow-pulse charge and discharge measurements at three representative state-of-charge locations. For each location, it estimates a resistance-like response from the change in voltage divided by the change in current between the lower-current baseline and the higher-current pulse. It also extracts post-discharge voltage relaxation and relaxed voltage. These primary measurements are summarized into charge and discharge resistance slopes across state of charge, medians, interquartile ranges, and charge-discharge asymmetry. The resulting feature set is compact, interpretable, and linked to ageing-sensitive electrochemical behaviour without directly revealing discharge capacity.
+
+Only C1 and C2 cells enter model development. The solution uses nested GroupKFold cross-validation with cell identity as the grouping variable. This prevents observations from the same battery cell appearing in both training and validation partitions. Feature selection is implemented inside each modelling pipeline so that selection cannot learn from validation observations. The selector first measures Pearson and Spearman relationships between candidate features and State of Health, removes highly redundant features using Spearman correlation, and then ranks the remaining variables with mutual information. The number of retained variables is tuned along with the model hyperparameters.
+
+Four regression families are compared: Ridge regression, radial-basis-function support vector regression, Random Forest regression, and Gradient Boosting regression. Inner grouped folds tune model and feature-selection hyperparameters, while outer grouped folds estimate development MAE, RMSE, and R2. The model with the lowest mean grouped development MAE is chosen. A final grouped search is then performed on all development cells, and the selected estimator is fitted without using any C3 labels. The validation_MAE, validation_RMSE, and validation_R2 values written to metrics.json summarize grouped development validation rather than hidden-test performance.
+
+The fitted model then predicts State of Health for every RPT observation from the seven held-out C3 cells. The required predictions.csv contains only the identifiers and predicted_SOH_pct. The hidden C3 target values are stored outside the agent-visible environment and are used by the oracle and verifier only for independent evaluation. This preserves the scientific meaning of the held-out test while allowing deterministic grading.
+
+The reference implementation additionally creates a feature-ranking table, a concise scientific report, and supporting figures. For the selected tree-based model, SHAP values summarize global feature importance so the final behaviour can be related back to resistance and relaxation diagnostics. Cell-wise and group-wise error summaries and cell-level bootstrap intervals are also calculated in the oracle for scientific interpretation. The overall approach works because it combines protocol-aware feature engineering with leakage-resistant grouped validation and evaluates transfer to cells that were completely excluded from model development.
+"""
+
+verification_explanation = """
+The verifier checks both output integrity and scientific generalization. It first confirms that all required result files exist and that the held-out C3 input files do not expose capacity, energy, or SOH columns. It then checks that predictions.csv contains exactly the required identifiers and one finite predicted_SOH_pct value for each of the 255 held-out observations from the seven expected C3 cells, with no duplicate keys and no returned true-SOH column.
+
+The verifier joins those predictions to a hidden reference table available only in the test environment and independently recomputes held-out MAE, RMSE, and R2. The acceptance limits are MAE <= 3.5 SOH percentage points, RMSE <= 4.5, and R2 >= 0.90. These bounds are intentionally broader than the reference solution's held-out performance, approximately MAE 2.05, RMSE 2.84, and R2 0.965, so grading does not depend on reproducing one exact model or one exact numeric output. The margin is intended to allow legitimate differences in feature engineering, feature selection, and regression choice while still rejecting models that do not generalize adequately to unseen cells.
+
+The tests also verify that the declared development and held-out cell sets are correct and disjoint, that selected predictor names do not include forbidden capacity, time, cycle, RPT, or identity variables, and that selected predictors appear in feature_ranking.csv. The ranking file must contain at least one numeric ranking or importance column. The reported validation_MAE, validation_RMSE, and validation_R2 values are required to be finite numeric development-validation summaries; they are not compared with the hidden C3 metrics because those labels are unavailable to the agent. Finally, report.md must be non-empty and the figures directory must contain at least one non-empty PNG file. This makes the verifier independent of the oracle's exact output files while preserving objective scientific performance checks.
+"""
+
+domain = "Energy Storage"
+field = "Battery Health"
+subfield = "LFP State of Health Estimation"
+tags = ["lithium-ion-batteries", "lfp", "state-of-health", "machine-learning", "battery-diagnostics"]
+expert_time_estimate_hours = 6.0
+relevant_experience = "Research experience in electric vehicles, energy storage, battery modelling, optimization, and applied machine learning."
+conflicts_of_interest = "None"
 
 [agent]
 timeout_sec = 3600.0
