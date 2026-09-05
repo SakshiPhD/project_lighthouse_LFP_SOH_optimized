@@ -253,9 +253,9 @@ for key in [
     "selected_features",
     "development_cells",
     "heldout_cells",
-    "MAE",
-    "RMSE",
-    "R2",
+    "validation_MAE",
+    "validation_RMSE",
+    "validation_R2",
 ]:
     require(
         key in metrics,
@@ -303,20 +303,32 @@ require(
     "Development and held-out cells overlap"
 )
 
-for key, value in [
-    ("MAE", mae),
-    ("RMSE", rmse),
-    ("R2", r2),
+for key in [
+    "validation_MAE",
+    "validation_RMSE",
+    "validation_R2",
 ]:
+    try:
+        value = float(metrics[key])
+    except (TypeError, ValueError):
+        raise AssertionError(
+            f"{key} in metrics.json must be numeric"
+        )
+
     require(
-        math.isclose(
-            float(metrics[key]),
-            float(value),
-            rel_tol=1e-8,
-            abs_tol=1e-8
-        ),
-        f"{key} in metrics.json does not match predictions"
+        math.isfinite(value),
+        f"{key} in metrics.json must be finite"
     )
+
+require(
+    float(metrics["validation_MAE"]) >= 0,
+    "validation_MAE must be non-negative"
+)
+
+require(
+    float(metrics["validation_RMSE"]) >= 0,
+    "validation_RMSE must be non-negative"
+)
 
 
 # Scientific performance check

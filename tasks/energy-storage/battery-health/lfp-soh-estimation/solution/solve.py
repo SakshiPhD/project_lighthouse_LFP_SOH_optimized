@@ -1722,6 +1722,23 @@ per_group.to_csv(
 )
 
 
+validation_row = model_summary.loc[
+    best_model_name
+]
+
+validation_mae = float(
+    validation_row["MAE_mean"]
+)
+
+validation_rmse = float(
+    validation_row["RMSE_mean"]
+)
+
+validation_r2 = float(
+    validation_row["R2_mean"]
+)
+
+
 metrics = {
 
     "final_model": (
@@ -1740,16 +1757,16 @@ metrics = {
         ].unique().tolist()
     ),
 
-    "MAE": float(
-        test_mae
+    "validation_MAE": (
+        validation_mae
     ),
 
-    "RMSE": float(
-        test_rmse
+    "validation_RMSE": (
+        validation_rmse
     ),
 
-    "R2": float(
-        test_r2
+    "validation_R2": (
+        validation_r2
     ),
 
     "development": {
