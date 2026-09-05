@@ -1,0 +1,23 @@
+schema_version = "1.4"
+
+[task]
+name = "project-lighthouse/lfp-soh"
+version = "1.0.0"
+description = "Estimate LFP battery SOH for unseen cells from RPT diagnostics."
+keywords = ["battery", "LFP", "SOH", "machine-learning", "scientific-computing"]
+
+[metadata]
+difficulty = "hard"
+category = "machine-learning"
+
+[agent]
+timeout_sec = 3600.0
+
+[verifier]
+timeout_sec = 900.0
+
+[environment]
+build_timeout_sec = 1800.0
+cpus = 4
+memory_mb = 4096
+storage_mb = 20480
