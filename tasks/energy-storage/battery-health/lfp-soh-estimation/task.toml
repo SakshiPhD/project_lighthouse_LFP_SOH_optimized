@@ -35,11 +35,17 @@ The reference implementation additionally creates a feature-ranking table, a con
 """
 
 verification_explanation = """
-The verifier checks both output integrity and scientific generalization. It first confirms that all required result files exist and that the held-out C3 input files do not expose capacity, energy, or SOH columns. It then checks that predictions.csv contains exactly the required identifiers and one finite predicted_SOH_pct value for each of the 255 held-out observations from the seven expected C3 cells, with no duplicate keys and no returned true-SOH column.
+The verifier checks that all required result files are present and correct.
 
-The verifier joins those predictions to a hidden reference table available only in the test environment and independently recomputes held-out MAE, RMSE, and R2. The acceptance limits are MAE <= 3.5 SOH percentage points, RMSE <= 4.5, and R2 >= 0.90. These bounds are intentionally broader than the reference solution's held-out performance, approximately MAE 2.05, RMSE 2.84, and R2 0.965, so grading does not depend on reproducing one exact model or one exact numeric output. The margin is intended to allow legitimate differences in feature engineering, feature selection, and regression choice while still rejecting models that do not generalize adequately to unseen cells.
+It checks that the 255 held out files do not show capacity, energy, SOH, cycle, date, cell name, or RPT order. The prediction file must contain one sample_id and one predicted_SOH_pct value for every held out sample.
 
-The tests also verify that the declared development and held-out cell sets are correct and disjoint, that selected predictor names do not include forbidden capacity, time, cycle, RPT, or identity variables, and that selected predictors appear in feature_ranking.csv. The ranking file must contain at least one numeric ranking or importance column. The reported validation_MAE, validation_RMSE, and validation_R2 values are required to be finite numeric development-validation summaries; they are not compared with the hidden C3 metrics because those labels are unavailable to the agent. Finally, report.md must be non-empty and the figures directory must contain at least one non-empty PNG file. This makes the verifier independent of the oracle's exact output files while preserving objective scientific performance checks.
+The verifier matches these sample IDs with the hidden true SOH values. It then calculates MAE, RMSE, and R2. The model must meet the required limits for these three values.
+
+It also checks the development cell list and the selected feature names. Forbidden values such as capacity, cycle, time, RPT number, and cell identity must not be used as model features.
+
+Every selected feature must also appear in feature_ranking.csv with a numeric score.
+
+The development validation values in metrics.json must be valid numbers. The report must not be empty. At least one valid PNG figure must also be present.
 """
 
 domain = "Energy Storage"
