@@ -2046,41 +2046,41 @@ report = f"""# Project Lighthouse
 
 ## Goal
 
-The goal is to estimate battery State of Health using pulse and relaxation measurements.
+The goal is to estimate battery State of Health from pulse and relaxation measurements.
 
-Full discharge capacity is used only to create the correct SOH target.
+Full discharge capacity is used only to calculate the SOH target.
 
 It is not used as a model input.
 
 ## Data
 
-Batch 1 contained 21 LFP battery cells from seven groups.
+Batch 1 contains 21 LFP battery cells from seven groups.
 
 There are 737 RPT observations.
 
 C1 and C2 cells are used for development.
 
-C3 cells are kept completely separate for the final test.
+C3 cells are kept separate for the final test.
 
-This gave 14 development cells and 7 unseen test cells.
+This gives 14 development cells and 7 unseen test cells.
 
 ## SOH target
 
-SOH is calculated using the C/3 full discharge capacity.
+SOH is calculated from the C/3 full discharge capacity.
 
 Each cell uses its own RPT 0 capacity as the 100 percent reference.
 
-All development RPT files produce valid target values, and the held out labels are kept separate from model development.
+The held out labels are not used during model development.
 
-The 1C discharge capacity is used as a quality check.
+The 1C discharge capacity is used only as a quality check.
 
 The mean difference between C/3 and 1C capacity was {targets['C3_vs_1C_diff_pct'].mean():.3f} percent.
 
-The largest difference is {targets['C3_vs_1C_diff_pct'].max():.3f} percent.
+The largest difference was {targets['C3_vs_1C_diff_pct'].max():.3f} percent.
 
 ## Features
 
-Nineteen physics based pulse and relaxation features are created.
+Nineteen physics-based pulse and relaxation features are created.
 
 Capacity, energy, RPT number, cycle count, date, phase and cell identity are not used as predictors.
 
@@ -2096,7 +2096,7 @@ The selected model was {best_model_name}.
 
 ## Final result
 
-The final model was tested on seven completely unseen C3 cells.
+The final model was tested on seven unseen C3 cells.
 
 MAE was {test_mae:.3f} SOH percentage points.
 
@@ -2104,9 +2104,9 @@ RMSE was {test_rmse:.3f}.
 
 R2 was {test_r2:.3f}.
 
-The worst cell MAE is {per_cell['MAE'].max():.3f} SOH percentage points.
+The worst cell MAE was {per_cell['MAE'].max():.3f} SOH percentage points.
 
-The 95 percent cell bootstrap interval for MAE was {ci['MAE']['lower']:.3f} to {ci['MAE']['upper']:.3f}.
+The 95 percent MAE range from repeated sampling of the held out cells was {ci['MAE']['lower']:.3f} to {ci['MAE']['upper']:.3f}.
 
 ## Selected features
 
@@ -2116,29 +2116,27 @@ The 95 percent cell bootstrap interval for MAE was {ci['MAE']['lower']:.3f} to {
 
 {shap_lines}
 
-The strongest final feature was {shap_importance.iloc[0]['feature']}.
+The feature with the highest SHAP value was {shap_importance.iloc[0]['feature']}.
 
 ## Limitation
 
-The model was not perfect.
+The model still made some larger errors.
 
 The largest single error was {predictions['absolute_error'].max():.2f} SOH percentage points.
 
-The error came from a small number of difficult observations.
+These larger errors came from a small number of observations.
 
-Natural differences between battery cells can sometimes look similar to ageing.
+Battery cells can differ naturally. In some cases, these differences can look similar to ageing.
 
-When RPT 0 observations were removed, MAE changed only from {test_mae:.3f} to {non_bol_metrics['MAE']:.3f}.
+When RPT 0 observations were removed, MAE changed from {test_mae:.3f} to {non_bol_metrics['MAE']:.3f}.
 
-This shows that the overall result was not controlled by the beginning of life points.
+This means that the final result did not depend mainly on the beginning of life points.
 
-## Final answer
+## Conclusion
 
-Yes.
+The model estimated SOH of unseen LFP cells using non-capacity diagnostic signals.
 
-SOH of unseen LFP cells could be estimated reasonably accurately using non capacity diagnostic signals.
-
-Low SOC relaxation and SOC dependent resistance behaviour carried useful ageing information.
+Low SOC relaxation and SOC dependent resistance features gave useful information about battery ageing.
 """
 
 
