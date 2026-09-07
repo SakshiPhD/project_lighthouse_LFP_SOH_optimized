@@ -1,4 +1,4 @@
-
+# Imports
 
 from pathlib import Path
 import json
@@ -127,9 +127,9 @@ def get_replicate(cell_id):
     ).group(2)
 
 
-# --------------------------------------------------
+
 # Target extraction
-# --------------------------------------------------
+
 
 def extract_rpt_capacities(rpt_file):
 
@@ -249,9 +249,8 @@ def extract_rpt_capacities(rpt_file):
     }
 
 
-# --------------------------------------------------
 # Feature extraction
-# --------------------------------------------------
+
 
 def extract_slowpulse_resistance(
     df,
@@ -542,9 +541,7 @@ def extract_v1_features(rpt_file):
     return features
 
 
-# --------------------------------------------------
 # Discover files
-# --------------------------------------------------
 
 missing_cells = [
     cell
@@ -563,9 +560,8 @@ if not HELDOUT_DIR.exists():
     )
 
 
-# --------------------------------------------------
-# Build development targets and features for all cells
-# --------------------------------------------------
+
+# Targets and features for all cells
 
 target_rows = []
 feature_rows = []
@@ -766,10 +762,8 @@ if len(test_df) != 255:
         "Held-out truth does not match anonymized held-out feature rows."
     )
 
-
-# --------------------------------------------------
 # EDA feature ranking
-# --------------------------------------------------
+
 
 pearson = (
     analysis_df[
@@ -810,10 +804,8 @@ feature_ranking = pd.DataFrame({
     "mutual_information": mi
 })
 
-
-# --------------------------------------------------
 # Development and held out split
-# --------------------------------------------------
+
 
 dev_df = analysis_df.copy()
 
@@ -839,10 +831,8 @@ y_test = test_df[
     "SOH_pct"
 ].copy()
 
-
-# --------------------------------------------------
 # Feature selector
-# --------------------------------------------------
+
 
 class PhysicsFeatureSelector(
     BaseEstimator,
@@ -1009,10 +999,8 @@ class PhysicsFeatureSelector(
             self.selected_features_
         ].to_numpy()
 
-
-# --------------------------------------------------
 # Models
-# --------------------------------------------------
+
 
 pipelines = {
 
@@ -1303,10 +1291,8 @@ print(
     best_model_name
 )
 
-
-# --------------------------------------------------
 # Final model tuning
-# --------------------------------------------------
+
 
 final_search = GridSearchCV(
     estimator=clone(
@@ -1345,10 +1331,8 @@ selected_features = (
     .selected_features_
 )
 
-
-# --------------------------------------------------
 # Held out evaluation
-# --------------------------------------------------
+
 
 test_pred = final_model.predict(
     X_test
@@ -1468,10 +1452,8 @@ per_group = (
     .reset_index()
 )
 
+# Performance uncertainty across cells
 
-# --------------------------------------------------
-# Cell bootstrap confidence intervals
-# --------------------------------------------------
 
 rng = np.random.default_rng(
     42
@@ -1579,9 +1561,8 @@ for metric in [
     }
 
 
-# --------------------------------------------------
 # Non RPT0 diagnostic
-# --------------------------------------------------
+
 
 non_bol = predictions[
     predictions[
@@ -1621,9 +1602,8 @@ non_bol_metrics = {
 }
 
 
-# --------------------------------------------------
 # SHAP
-# --------------------------------------------------
+
 
 selector = (
     final_model
@@ -1706,9 +1686,8 @@ feature_ranking[
 )
 
 
-# --------------------------------------------------
 # Save main outputs
-# --------------------------------------------------
+
 
 submission_predictions = predictions[
     [
@@ -1902,9 +1881,8 @@ with open(
     )
 
 
-# --------------------------------------------------
 # Figures
-# --------------------------------------------------
+
 
 plt.figure(
     figsize=(6, 6)
@@ -2029,9 +2007,8 @@ plt.savefig(
 plt.close()
 
 
-# --------------------------------------------------
-# Human readable report
-# --------------------------------------------------
+# Report
+
 
 model_lines = []
 
